@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -7,33 +8,30 @@ namespace Alba.Plist.Tests
     [TestClass]
     public class plistTests
     {
-        string targetXmlPath = "../../../Examples/targetXml.plist";
-        string targetBinPath = "../../../Examples/targetBin.plist";
-        string sourceXmlPath = "../../../Examples/testXml.plist";
-        string sourceBinPath = "../../../Examples/testBin.plist";
-        string sourceImage   = "../../../Examples/testImage.jpg";
+        private const string targetXmlPath = "../../../Examples/targetXml.plist";
+        private const string targetBinPath = "../../../Examples/targetBin.plist";
+        private const string sourceXmlPath = "../../../Examples/testXml.plist";
+        private const string sourceBinPath = "../../../Examples/testBin.plist";
+        private const string sourceImage = "../../../Examples/testImage.jpg";
 
-        private Dictionary<string, object> CreateDictionary()
+        private static Dictionary<string, object> CreateDictionary ()
         {
             const int largeCollectionSize = 18;
 
-            Dictionary<string, object> dict = new Dictionary<string, object>();
-            Dictionary<string, object> largeDict = new Dictionary<string, object>();
-            List<object> largeArray = new List<object>();
+            var dict = new Dictionary<string, object>();
+            var largeDict = new Dictionary<string, object>();
+            var largeArray = new List<object>();
 
-            for (int i = 0; i < largeCollectionSize; i++)
-            {
+            for (int i = 0; i < largeCollectionSize; i++) {
                 largeArray.Add(i);
-                string key = i.ToString();
+                string key = i.ToString(CultureInfo.InvariantCulture);
                 if (i < 10)
-                    key = "0" + i.ToString();
+                    key = "0" + i.ToString(CultureInfo.InvariantCulture);
                 largeDict.Add(key, i);
             }
 
-            using (BinaryReader br = new BinaryReader(File.OpenRead(sourceImage)))
-            {
+            using (var br = new BinaryReader(File.OpenRead(sourceImage)))
                 dict.Add("testImage", br.ReadBytes((int)br.BaseStream.Length));
-            }
             dict.Add("testDate", PlistDateConverter.ConvertFromAppleTimeStamp(338610664L));
             dict.Add("testInt", -3455);
             dict.Add("testDouble", 1.34223d);
@@ -48,7 +46,7 @@ namespace Alba.Plist.Tests
             return dict;
         }
 
-        private void CheckDictionary(Dictionary<string, object> dict)
+        private static void CheckDictionary (Dictionary<string, object> dict)
         {
             Dictionary<string, object> actualDict = CreateDictionary();
             Assert.AreEqual(dict["testDate"], actualDict["testDate"], "Dates do not correspond.");
@@ -65,35 +63,35 @@ namespace Alba.Plist.Tests
         }
 
         [TestMethod]
-        public void ReadBinary()
+        public void ReadBinary ()
         {
-            CheckDictionary((Dictionary<string, object>)Plist.readPlist(sourceBinPath));
+            CheckDictionary((Dictionary<string, object>)Plist.ReadPlist(sourceBinPath));
         }
 
         [TestMethod]
-        public void ReadXml()
+        public void ReadXml ()
         {
-            CheckDictionary((Dictionary<string, object>)Plist.readPlist(sourceXmlPath));
+            CheckDictionary((Dictionary<string, object>)Plist.ReadPlist(sourceXmlPath));
         }
 
         [TestMethod]
-        public void WriteBinary()
+        public void WriteBinary ()
         {
-            Plist.writeBinary(CreateDictionary(), targetBinPath);
-            CheckDictionary((Dictionary<string, object>)Plist.readPlist(targetBinPath));
+            Plist.WriteBinary(CreateDictionary(), targetBinPath);
+            CheckDictionary((Dictionary<string, object>)Plist.ReadPlist(targetBinPath));
         }
 
         [TestMethod]
-        public void WriteXml()
+        public void WriteXml ()
         {
-            Plist.writeXml(CreateDictionary(), targetXmlPath);
-            CheckDictionary((Dictionary<string, object>)Plist.readPlist(targetXmlPath));
+            Plist.WriteXml(CreateDictionary(), targetXmlPath);
+            CheckDictionary((Dictionary<string, object>)Plist.ReadPlist(targetXmlPath));
         }
 
         [TestMethod]
-        public void ReadWriteBinaryByteArray()
+        public void ReadWriteBinaryByteArray ()
         {
-            CheckDictionary((Dictionary<string, object>)Plist.readPlist(Plist.writeBinary(CreateDictionary())));
+            CheckDictionary((Dictionary<string, object>)Plist.ReadPlist(Plist.WriteBinary(CreateDictionary())));
         }
     }
 }
