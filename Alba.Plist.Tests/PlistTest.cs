@@ -65,33 +65,33 @@ namespace Alba.Plist.Tests
         [TestMethod]
         public void ReadBinary ()
         {
-            CheckDictionary((Dictionary<string, object>)Plist.ReadPlist(sourceBinPath));
+            CheckDictionary((Dictionary<string, object>)Plist.ReadFile(sourceBinPath));
         }
 
         [TestMethod]
         public void ReadXml ()
         {
-            CheckDictionary((Dictionary<string, object>)Plist.ReadPlist(sourceXmlPath));
+            CheckDictionary((Dictionary<string, object>)Plist.ReadFile(sourceXmlPath));
         }
 
         [TestMethod]
         public void WriteBinary ()
         {
-            Plist.WriteBinary(CreateDictionary(), targetBinPath);
-            CheckDictionary((Dictionary<string, object>)Plist.ReadPlist(targetBinPath));
+            Plist.WriteBinaryFile(CreateDictionary(), targetBinPath);
+            CheckDictionary((Dictionary<string, object>)Plist.ReadFile(targetBinPath));
         }
 
         [TestMethod]
         public void WriteXml ()
         {
-            Plist.WriteXml(CreateDictionary(), targetXmlPath);
-            CheckDictionary((Dictionary<string, object>)Plist.ReadPlist(targetXmlPath));
+            Plist.WriteXmlFile(CreateDictionary(), targetXmlPath);
+            CheckDictionary((Dictionary<string, object>)Plist.ReadFile(targetXmlPath));
         }
 
         [TestMethod]
         public void ReadWriteBinaryByteArray ()
         {
-            CheckDictionary((Dictionary<string, object>)Plist.ReadPlist(Plist.WriteBinary(CreateDictionary())));
+            CheckDictionary((Dictionary<string, object>)Plist.ReadBytes(Plist.ToBytes(CreateDictionary())));
         }
     }
 }
