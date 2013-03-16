@@ -1,0 +1,7 @@
+/TestResults
+/Examples/target*
+bin/
+obj/
+*.suo
+*.DotSettings.user
+*.csproj.user

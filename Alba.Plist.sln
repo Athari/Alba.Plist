@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alba.Plist", "Alba.Plist\Alba.Plist.csproj", "{02140CA1-6B32-4F0A-8B38-5D522E4266D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alba.Plist.Tests", "Alba.Plist.Tests\Alba.Plist.Tests.csproj", "{F3948551-3D75-4E97-9CCA-2C579354167F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{C2B9B6D1-7984-419A-BE15-91A17CAE0E6F}"
+	ProjectSection(SolutionItems) = preProject
+		Build\Common.targets = Build\Common.targets
+		Build\CommonTests.targets = Build\CommonTests.targets
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{02140CA1-6B32-4F0A-8B38-5D522E4266D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02140CA1-6B32-4F0A-8B38-5D522E4266D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02140CA1-6B32-4F0A-8B38-5D522E4266D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02140CA1-6B32-4F0A-8B38-5D522E4266D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3948551-3D75-4E97-9CCA-2C579354167F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3948551-3D75-4E97-9CCA-2C579354167F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3948551-3D75-4E97-9CCA-2C579354167F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3948551-3D75-4E97-9CCA-2C579354167F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

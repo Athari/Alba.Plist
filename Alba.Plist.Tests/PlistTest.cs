@@ -1,18 +1,17 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PlistCS;
 
-namespace Testing
+namespace Alba.Plist.Tests
 {
     [TestClass]
     public class plistTests
     {
-        string targetXmlPath = "targetXml.plist";
-        string targetBinPath = "targetBin.plist";
-        string sourceXmlPath = "testXml.plist";
-        string sourceBinPath = "testBin.plist";
-        string sourceImage   = "testImage.jpg";
+        string targetXmlPath = "../../../Examples/targetXml.plist";
+        string targetBinPath = "../../../Examples/targetBin.plist";
+        string sourceXmlPath = "../../../Examples/testXml.plist";
+        string sourceBinPath = "../../../Examples/testBin.plist";
+        string sourceImage   = "../../../Examples/testImage.jpg";
 
         private Dictionary<string, object> CreateDictionary()
         {
