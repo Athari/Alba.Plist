@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -191,7 +192,7 @@ namespace Alba.Plist
             return ParseBinary(0);
         }
 
-        private Dictionary<string, object> ParseDictionary (XmlNode node)
+        private IDictionary<string, object> ParseDictionary (XmlNode node)
         {
             XmlNodeList children = node.ChildNodes;
             if (children.Count % 2 != 0)
@@ -236,9 +237,9 @@ namespace Alba.Plist
                 case "string":
                     return node.InnerText;
                 case "integer":
-                    return Convert.ToInt32(node.InnerText, System.Globalization.NumberFormatInfo.InvariantInfo);
+                    return Convert.ToInt32(node.InnerText, NumberFormatInfo.InvariantInfo);
                 case "real":
-                    return Convert.ToDouble(node.InnerText, System.Globalization.NumberFormatInfo.InvariantInfo);
+                    return Convert.ToDouble(node.InnerText, NumberFormatInfo.InvariantInfo);
                 case "false":
                     return false;
                 case "true":
@@ -261,17 +262,12 @@ namespace Alba.Plist
                 return;
             }
             if (value is int || value is long) {
-                writer.WriteElementString("integer", ((int)value).ToString(System.Globalization.NumberFormatInfo.InvariantInfo));
+                writer.WriteElementString("integer", ((int)value).ToString(NumberFormatInfo.InvariantInfo));
                 return;
             }
-            if (value is Dictionary<string, object> ||
-                value.GetType().ToString().StartsWith("System.Collections.Generic.Dictionary`2[System.String")) {
-                //Convert to Dictionary<string, object>
-                var dic = value as Dictionary<string, object>;
-                if (dic == null) {
-                    var idic = (IDictionary)value;
-                    dic = idic.Keys.Cast<object>().ToDictionary(key => key.ToString(), key => idic[key]);
-                }
+            var idic = value as IDictionary;
+            if (idic != null) {
+                var dic = value as IDictionary<string, object> ?? idic.Keys.Cast<object>().ToDictionary(k => (string)k, k => idic[k]);
                 WriteDictionaryValues(dic, writer);
                 return;
             }
@@ -286,7 +282,7 @@ namespace Alba.Plist
                 return;
             }
             if (value is float || value is double) {
-                writer.WriteElementString("real", ((double)value).ToString(System.Globalization.NumberFormatInfo.InvariantInfo));
+                writer.WriteElementString("real", ((double)value).ToString(NumberFormatInfo.InvariantInfo));
                 return;
             }
             if (value is DateTime) {
@@ -301,7 +297,7 @@ namespace Alba.Plist
             throw new ArgumentException(String.Format("Value of type '{0}' cannot be handled.", value.GetType()), "value");
         }
 
-        private void WriteDictionaryValues (Dictionary<string, object> dictionary, XmlWriter writer)
+        private void WriteDictionaryValues (IDictionary<string, object> dictionary, XmlWriter writer)
         {
             writer.WriteStartElement("dict");
             foreach (string key in dictionary.Keys) {
@@ -312,29 +308,18 @@ namespace Alba.Plist
             writer.WriteEndElement();
         }
 
-        private int CountObject (object value)
+        private static int CountObject (object value)
         {
-            int count = 0;
-            switch (value.GetType().ToString()) {
-                case "System.Collections.Generic.Dictionary`2[System.String,System.Object]":
-                    var dict = (Dictionary<string, object>)value;
-                    count += dict.Keys.Sum(key => CountObject(dict[key]));
-                    count += dict.Keys.Count;
-                    count++;
-                    break;
-                case "System.Collections.Generic.List`1[System.Object]":
-                    var list = (List<object>)value;
-                    count += list.Sum(obj => CountObject(obj));
-                    count++;
-                    break;
-                default:
-                    count++;
-                    break;
-            }
-            return count;
+            var dict = value as IDictionary<string, object>;
+            if (dict != null)
+                return 1 + dict.Keys.Count + dict.Keys.Sum(key => CountObject(dict[key]));
+            var list = value as IList<object>;
+            if (list != null)
+                return 1 + list.Sum(obj => CountObject(obj));
+            return 1;
         }
 
-        private void WriteBinaryDictionary (Dictionary<string, object> dictionary)
+        private void WriteBinaryDictionary (IDictionary<string, object> dictionary)
         {
             var buffer = new List<byte>();
             var header = new List<byte>();
@@ -350,7 +335,7 @@ namespace Alba.Plist
             for (int i = dictionary.Count - 1; i >= 0; i--) {
                 var o = new string[dictionary.Count];
                 dictionary.Keys.CopyTo(o, 0);
-                ComposeBinary(o[i]); //);
+                ComposeBinary(o[i]);
                 _offsetTable.Add(_objectTable.Count);
                 refs.Add(_refCount);
                 _refCount--;
@@ -363,7 +348,6 @@ namespace Alba.Plist
                 header.Add(0xD0 | 0xf);
                 header.AddRange(WriteBinaryInteger(dictionary.Count, false));
             }
-
 
             foreach (int val in refs) {
                 byte[] refBuffer = RegulateNullBytes(BitConverter.GetBytes(val), _objRefSize);
@@ -408,33 +392,40 @@ namespace Alba.Plist
 
         private void ComposeBinary (object obj)
         {
-            switch (obj.GetType().ToString()) {
-                case "System.Collections.Generic.Dictionary`2[System.String,System.Object]":
-                    WriteBinaryDictionary((Dictionary<string, object>)obj);
-                    return;
-                case "System.Collections.Generic.List`1[System.Object]":
-                    ComposeBinaryArray((List<object>)obj);
-                    return;
-                case "System.Byte[]":
-                    WriteBinaryByteArray((byte[])obj);
-                    return;
-                case "System.Double":
-                    WriteBinaryDouble((double)obj);
-                    return;
-                case "System.Int32":
-                    WriteBinaryInteger((int)obj, true);
-                    return;
-                case "System.String":
-                    WriteBinaryString((string)obj, true);
-                    return;
-                case "System.DateTime":
-                    WriteBinaryDate((DateTime)obj);
-                    return;
-                case "System.Boolean":
-                    WriteBinaryBool((bool)obj);
-                    return;
-                default:
-                    return;
+            var dic = obj as IDictionary<string, object>;
+            if (dic != null) {
+                WriteBinaryDictionary(dic);
+                return;
+            }
+            var list = obj as IList<object>;
+            if (list != null) {
+                ComposeBinaryArray((List<object>)obj);
+                return;
+            }
+            var bytes = obj as ICollection<byte>;
+            if (bytes != null) {
+                WriteBinaryByteArray((ICollection<byte>)obj);
+                return;
+            }
+            if (obj is double) {
+                WriteBinaryDouble((double)obj);
+                return;
+            }
+            if (obj is int) {
+                WriteBinaryInteger((int)obj, true);
+                return;
+            }
+            var str = obj as string;
+            if (str != null) {
+                WriteBinaryString(str, true);
+                return;
+            }
+            if (obj is DateTime) {
+                WriteBinaryDate((DateTime)obj);
+                return;
+            }
+            if (obj is bool) {
+                WriteBinaryBool((bool)obj);
             }
         }
 
@@ -477,12 +468,12 @@ namespace Alba.Plist
             _objectTable.InsertRange(0, buffer);
         }
 
-        private void WriteBinaryByteArray (byte[] value)
+        private void WriteBinaryByteArray (ICollection<byte> value)
         {
             var buffer = new List<byte>(value);
             var header = new List<byte>();
-            if (value.Length < 15) {
-                header.Add(Convert.ToByte(0x40 | Convert.ToByte(value.Length)));
+            if (value.Count < 15) {
+                header.Add(Convert.ToByte(0x40 | Convert.ToByte(value.Count)));
             }
             else {
                 header.Add(0x40 | 0xf);
