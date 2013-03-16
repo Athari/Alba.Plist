@@ -11,6 +11,8 @@ namespace Alba.Plist
 {
     public class Plist
     {
+        private const long MagicHeader = 0x30307473696c7062;
+
         private readonly List<int> _offsetTable = new List<int>();
         private List<byte> _objectTable = new List<byte>();
         private int _refCount;
@@ -25,7 +27,7 @@ namespace Alba.Plist
         {
             var magicHeader = new byte[8];
             stream.Read(magicHeader, 0, 8);
-            PlistType plistType = BitConverter.ToInt64(magicHeader, 0) == 0x30307473696c7062 ? PlistType.Binary : PlistType.Xml;
+            PlistType plistType = BitConverter.ToInt64(magicHeader, 0) == MagicHeader ? PlistType.Binary : PlistType.Xml;
             stream.Seek(0, SeekOrigin.Begin);
             return plistType;
         }
@@ -129,10 +131,10 @@ namespace Alba.Plist
 
         public static byte[] ToBytes (object value)
         {
-            return new Plist().WriteBinaryInternal(value);
+            return new Plist().WriteBinary(value);
         }
 
-        private byte[] WriteBinaryInternal (object value)
+        private byte[] WriteBinary (object value)
         {
             //Do not count the root node, subtract by 1
             int totalRefs = CountObject(value) - 1;
@@ -193,7 +195,7 @@ namespace Alba.Plist
         {
             XmlNodeList children = node.ChildNodes;
             if (children.Count % 2 != 0)
-                throw new DataMisalignedException("Dictionary elements must have an even number of child nodes");
+                throw new PlistFormatException("Dictionary elements must have an even number of child nodes.");
 
             var dict = new Dictionary<string, object>();
             for (int i = 0; i < children.Count; i += 2) {
@@ -201,7 +203,7 @@ namespace Alba.Plist
                 XmlNode valnode = children[i + 1];
 
                 if (keynode.Name != "key")
-                    throw new ApplicationException("expected a key node");
+                    throw new PlistFormatException("Expected a key node.");
 
                 object result = Parse(valnode);
                 if (result != null)
@@ -216,7 +218,7 @@ namespace Alba.Plist
             return node.ChildNodes.Cast<XmlNode>().Select(Parse).Where(o => o != null).ToList();
         }
 
-        private void composeArray (List<object> value, XmlWriter writer)
+        private void ComposeArray (List<object> value, XmlWriter writer)
         {
             writer.WriteStartElement("array");
             foreach (object obj in value)
@@ -249,7 +251,7 @@ namespace Alba.Plist
                     return Convert.FromBase64String(node.InnerText);
             }
 
-            throw new ApplicationException(String.Format("Plist Node `{0}' is not supported", node.Name));
+            throw new PlistFormatException(String.Format("Plist node of type '{0}' is not supported.", node.Name));
         }
 
         private void Compose (object value, XmlWriter writer)
@@ -275,7 +277,7 @@ namespace Alba.Plist
             }
             var list = value as List<object>;
             if (list != null) {
-                composeArray(list, writer);
+                ComposeArray(list, writer);
                 return;
             }
             var bytes = value as byte[];
@@ -296,7 +298,7 @@ namespace Alba.Plist
                 writer.WriteElementString(value.ToString().ToLower(), "");
                 return;
             }
-            throw new Exception(String.Format("Value type '{0}' is unhandled", value.GetType()));
+            throw new ArgumentException(String.Format("Value of type '{0}' cannot be handled.", value.GetType()), "value");
         }
 
         private void WriteDictionaryValues (Dictionary<string, object> dictionary, XmlWriter writer)
@@ -332,7 +334,7 @@ namespace Alba.Plist
             return count;
         }
 
-        private byte[] WriteBinaryDictionary (Dictionary<string, object> dictionary)
+        private void WriteBinaryDictionary (Dictionary<string, object> dictionary)
         {
             var buffer = new List<byte>();
             var header = new List<byte>();
@@ -371,10 +373,9 @@ namespace Alba.Plist
 
             buffer.InsertRange(0, header);
             _objectTable.InsertRange(0, buffer);
-            return buffer.ToArray();
         }
 
-        private byte[] ComposeBinaryArray (List<object> objects)
+        private void ComposeBinaryArray (List<object> objects)
         {
             var buffer = new List<byte>();
             var header = new List<byte>();
@@ -403,56 +404,52 @@ namespace Alba.Plist
 
             buffer.InsertRange(0, header);
             _objectTable.InsertRange(0, buffer);
-            return buffer.ToArray();
         }
 
-        private byte[] ComposeBinary (object obj)
+        private void ComposeBinary (object obj)
         {
-            byte[] value;
             switch (obj.GetType().ToString()) {
                 case "System.Collections.Generic.Dictionary`2[System.String,System.Object]":
-                    value = WriteBinaryDictionary((Dictionary<string, object>)obj);
-                    return value;
+                    WriteBinaryDictionary((Dictionary<string, object>)obj);
+                    return;
                 case "System.Collections.Generic.List`1[System.Object]":
-                    value = ComposeBinaryArray((List<object>)obj);
-                    return value;
+                    ComposeBinaryArray((List<object>)obj);
+                    return;
                 case "System.Byte[]":
-                    value = WriteBinaryByteArray((byte[])obj);
-                    return value;
+                    WriteBinaryByteArray((byte[])obj);
+                    return;
                 case "System.Double":
-                    value = WriteBinaryDouble((double)obj);
-                    return value;
+                    WriteBinaryDouble((double)obj);
+                    return;
                 case "System.Int32":
-                    value = WriteBinaryInteger((int)obj, true);
-                    return value;
+                    WriteBinaryInteger((int)obj, true);
+                    return;
                 case "System.String":
-                    value = WriteBinaryString((string)obj, true);
-                    return value;
+                    WriteBinaryString((string)obj, true);
+                    return;
                 case "System.DateTime":
-                    value = WriteBinaryDate((DateTime)obj);
-                    return value;
+                    WriteBinaryDate((DateTime)obj);
+                    return;
                 case "System.Boolean":
-                    value = WriteBinaryBool((bool)obj);
-                    return value;
+                    WriteBinaryBool((bool)obj);
+                    return;
                 default:
-                    return new byte[0];
+                    return;
             }
         }
 
-        private byte[] WriteBinaryDate (DateTime obj)
+        private void WriteBinaryDate (DateTime obj)
         {
             var buffer = new List<byte>(RegulateNullBytes(BitConverter.GetBytes(PlistDateConverter.ConvertToAppleTimeStamp(obj)), 8));
             buffer.Reverse();
             buffer.Insert(0, 0x33);
             _objectTable.InsertRange(0, buffer);
-            return buffer.ToArray();
         }
 
-        private byte[] WriteBinaryBool (bool obj)
+        private void WriteBinaryBool (bool obj)
         {
             var buffer = new List<byte>(new[] { obj ? (byte)9 : (byte)8 });
             _objectTable.InsertRange(0, buffer);
-            return buffer.ToArray();
         }
 
         private byte[] WriteBinaryInteger (int value, bool write)
@@ -469,7 +466,7 @@ namespace Alba.Plist
             return buffer.ToArray();
         }
 
-        private byte[] WriteBinaryDouble (double value)
+        private void WriteBinaryDouble (double value)
         {
             var buffer = new List<byte>(RegulateNullBytes(BitConverter.GetBytes(value), 4));
             while (buffer.Count != Math.Pow(2, Math.Log(buffer.Count) / Math.Log(2)))
@@ -478,10 +475,9 @@ namespace Alba.Plist
             buffer.Reverse();
             buffer.Insert(0, Convert.ToByte(header));
             _objectTable.InsertRange(0, buffer);
-            return buffer.ToArray();
         }
 
-        private byte[] WriteBinaryByteArray (byte[] value)
+        private void WriteBinaryByteArray (byte[] value)
         {
             var buffer = new List<byte>(value);
             var header = new List<byte>();
@@ -495,10 +491,9 @@ namespace Alba.Plist
 
             buffer.InsertRange(0, header);
             _objectTable.InsertRange(0, buffer);
-            return buffer.ToArray();
         }
 
-        private byte[] WriteBinaryString (string value, bool head)
+        private void WriteBinaryString (string value, bool head)
         {
             var header = new List<byte>();
             var buffer = value.ToCharArray().Select(Convert.ToByte).ToList();
@@ -515,7 +510,6 @@ namespace Alba.Plist
 
             buffer.InsertRange(0, header);
             _objectTable.InsertRange(0, buffer);
-            return buffer.ToArray();
         }
 
         private byte[] RegulateNullBytes (byte[] value, int minBytes = 1)
@@ -653,7 +647,7 @@ namespace Alba.Plist
                 case 0xA0:
                     return ParseBinaryArray(objRef);
             }
-            throw new Exception("This type is not supported");
+            throw new PlistFormatException(string.Format("Type with header 0x{0:x} is not supported.", header));
         }
 
         private object ParseBinaryDate (int headerPosition)

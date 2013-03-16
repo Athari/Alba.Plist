@@ -41,6 +41,7 @@
   <ItemGroup>
     <Compile Include="Plist.cs" />
     <Compile Include="PlistDateConverter.cs" />
+    <Compile Include="PlistException.cs" />
     <Compile Include="PlistType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
