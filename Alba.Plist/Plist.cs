@@ -447,7 +447,7 @@ namespace Alba.Plist
         {
             var buffer = new List<byte>(BitConverter.GetBytes((long)value));
             buffer = new List<byte>(RegulateNullBytes(buffer.ToArray()));
-            while (buffer.Count != Math.Pow(2, Math.Log(buffer.Count) / Math.Log(2)))
+            while (buffer.Count != (int)(Math.Pow(2, Math.Log(buffer.Count) / Math.Log(2))))
                 buffer.Add(0);
             int header = 0x10 | (int)(Math.Log(buffer.Count) / Math.Log(2));
             buffer.Reverse();
@@ -460,7 +460,7 @@ namespace Alba.Plist
         private void WriteBinaryDouble (double value)
         {
             var buffer = new List<byte>(RegulateNullBytes(BitConverter.GetBytes(value), 4));
-            while (buffer.Count != Math.Pow(2, Math.Log(buffer.Count) / Math.Log(2)))
+            while (buffer.Count != (int)(Math.Pow(2, Math.Log(buffer.Count) / Math.Log(2))))
                 buffer.Add(0);
             int header = 0x20 | (int)(Math.Log(buffer.Count) / Math.Log(2));
             buffer.Reverse();
